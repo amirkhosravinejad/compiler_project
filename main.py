@@ -1,24 +1,3 @@
-# -----------------------------------------------------------------------------
-# example.py
-#
-# Example of using PLY To parse the following simple grammar.
-#
-#   expression : term PLUS term
-#              | term MINUS term
-#              | term
-#
-#   term       : factor TIMES factor
-#              | factor DIVIDE factor
-#              | factor
-#
-#   factor     : NUMBER
-#              | NAME
-#              | PLUS factor
-#              | MINUS factor
-#              | LPAREN expression RPAREN
-#
-# -----------------------------------------------------------------------------
-
 from ply.lex import lex
 from ply.yacc import yacc
 
@@ -26,13 +5,14 @@ from ply.yacc import yacc
 
 # precedences
 precedence = (
-    ('left', 'PLUS', 'MINUS'),
-    ('left', 'TIMES', 'DIVIDE'),
+    ('right', 'PLUS', 'MINUS'),
+    ('right', 'TIMES', 'DIVIDE', 'MOD'),
+    ('right', 'UMINUS'),
 )
 
 # All tokens must be named in advance.
 tokens = ( 'PLUS', 'MINUS', 'TIMES', 'DIVIDE', 'LPAREN', 'RPAREN',
-           'NAME', 'NUMBER' )
+           'NAME', 'NUMBER', 'AND', 'NOT', 'OR', 'RELOP', 'MOD', 'UMINUS' )
 
 # Ignored characters
 t_ignore = ' \t'
@@ -42,9 +22,20 @@ t_PLUS = r'\+'
 t_MINUS = r'-'
 t_TIMES = r'\*'
 t_DIVIDE = r'/'
+t_MOD = r'mod'
 t_LPAREN = r'\('
 t_RPAREN = r'\)'
+t_UMINUS = r'-'
+t_AND = r'and'
+t_NOT = r'not'
+t_OR = r'or'
 t_NAME = r'[a-zA-Z_][a-zA-Z0-9_]*'
+
+# Function to generate relational operation tokens
+# (just like mathematical ones)
+def t_RELOP(t):
+    r'<|<=|>|>=|=|<>'
+    return t
 
 # A function can be used if there is an associated action.
 # Write the matching regex in the docstring.
@@ -68,61 +59,59 @@ lexer = lex()
     
 # --- Parser
 
-# Write functions for each grammar rule which is
-# specified in the docstring.
-def p_expression(p):
+def p_expression_number(p):
     '''
-    expression : term PLUS term
-               | term MINUS term
-    '''
-    # p is a sequence that represents rule contents.
-    #
-    # expression : term PLUS term
-    #   p[0]     : p[1] p[2] p[3]
-    # 
-    p[0] = ('binop', p[2], p[1], p[3])
-
-def p_expression_term(p):
-    '''
-    expression : term
-    '''
-    p[0] = p[1]
-
-def p_term(p):
-    '''
-    term : factor TIMES factor
-         | factor DIVIDE factor
-    '''
-    p[0] = ('binop', p[2], p[1], p[3])
-
-def p_term_factor(p):
-    '''
-    term : factor
-    '''
-    p[0] = p[1]
-
-def p_factor_number(p):
-    '''
-    factor : NUMBER
+    expression : NUMBER
     '''
     p[0] = ('number', p[1])
 
-def p_factor_name(p):
+def p_expression_name(p):
     '''
-    factor : NAME
+    expression : NAME
     '''
     p[0] = ('name', p[1])
 
-def p_factor_unary(p):
+# Write functions for each grammar rule which is
+# specified in the docstring.
+def p_expression_arithmetic(p):
     '''
-    factor : PLUS factor
-           | MINUS factor
+    expression : expression PLUS expression
+               | expression MINUS expression
+               | expression TIMES expression
+               | expression DIVIDE expression
+               | expression MOD expression
     '''
-    p[0] = ('unary', p[1], p[2])
+    # p is a sequence that represents rule contents.
+    #
+    # expression : expression arithmetic_operaion expression
+    #   p[0]     : p[1] p[2] p[3]
+    # 
+    if p[2] == '+':
+        p[0] = (p[1], p[2], p[3])
+    elif p[2] == '-':
+        p[0] = (p[1], p[2], p[3])
+    elif p[2] == '*':
+        p[0] = (p[1], p[2], p[3])
+    elif p[2] == '/':
+        p[0] = (p[1], p[2], p[3])
+    elif p[2] == 'mod':
+        p[0] = (p[1], p[2], p[3])
 
-def p_factor_grouped(p):
+def p_expr_uminus(p):
+    'expression : MINUS expression %prec UMINUS'
+    p[0] = ('-',p[2])
+
+def p_expression_NOT(p):
     '''
-    factor : LPAREN expression RPAREN
+    expression : NOT expression
+    '''
+    if p[1] == 'NOT':
+        print(f"p[0] = {p[0]}, p[1] = {p[1]}, p[2] = {p[2]}")
+        p[0] = (p[1], p[2])
+
+def p_expression_grouped(p):
+    '''
+    expression : LPAREN expression RPAREN
     '''
     p[0] = ('grouped', p[2])
 
@@ -133,5 +122,5 @@ def p_error(p):
 parser = yacc()
 
 # Parse an expression
-ast = parser.parse('2 * 3 + 4 * (5 - x)')
+ast = parser.parse('- x - 2', debug=True)
 print(ast)
