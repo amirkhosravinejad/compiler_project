@@ -9,6 +9,11 @@ precedence = (
     ('right', 'TIMES', 'DIVIDE', 'MOD'),
     ('right', 'UMINUS'),
 )
+# Saved Keywords of the grammer
+keywords = (
+    'IF', 'THEN', 'WHILE', 'ELSE', 'DO', 'PRINT',
+    'SWITCH', 'OF', 'DONE', 'PROGRAM', 'VAR', 'BEGIN','END', 'DEFAULT',
+)
 
 # All tokens must be named in advance.
 tokens = (
@@ -75,6 +80,28 @@ def t_error(t):
 lexer = lex()
     
 # --- Parser
+
+def p_program(p):
+    '''program : PROGRAM identifier declarations compound-statements
+               '''
+#
+#    if len(p) == 2 and p[1]:
+#        p[0] = {}
+#        line, stat = p[1]
+#        p[0][line] = stat
+#    elif len(p) == 3:
+#        p[0] = p[1]
+#        if not p[0]:
+#            p[0] = {}
+#        if p[2]:
+#            line, stat = p[2]
+#            p[0][line] = stat
+
+    p[0] = p[1]
+    if not p[0]:
+        p[0] = {}
+    
+    pass
 
 def p_expression_number(p):
     '''
@@ -153,7 +180,7 @@ def p_expr_relative(p):
     # 
     if p[2] == 'and':
         p[0] = (p[1], p[2], p[3])
-    elif p2 == 'or':
+    elif p[2] == 'or':
         p[0] = (p[1], p[2], p[3])
 
 
