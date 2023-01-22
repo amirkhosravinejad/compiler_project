@@ -11,8 +11,14 @@ precedence = (
 )
 
 # All tokens must be named in advance.
-tokens = ( 'PLUS', 'MINUS', 'TIMES', 'DIVIDE', 'LPAREN', 'RPAREN',
-           'NAME', 'NUMBER', 'AND', 'NOT', 'OR', 'RELOP', 'MOD', 'UMINUS' )
+tokens = (
+        # Operators (+,-,*,/,mod(%),|,&,~,^,<<,>>, ||, &&, !, <, <=, >, >=, ==, <>) 
+        'PLUS', 'MINUS', 'TIMES', 'DIVIDE', 'LPAREN', 'RPAREN',
+        'NAME', 'NUMBER', 'AND', 'NOT', 'OR', 'MOD', 'UMINUS',
+        'LT', 'LE', 'GT', 'GE', 'EQ', 'GL',
+        # Assignment (=)
+        'EQUALS'
+        )
 
 # Ignored characters
 t_ignore = ' \t'
@@ -30,6 +36,12 @@ t_AND = r'and'
 t_NOT = r'not'
 t_OR = r'or'
 t_NAME = r'[a-zA-Z_][a-zA-Z0-9_]*'
+t_LT = r'<'
+t_GT = r'>'
+t_LE = r'<='
+t_GE = r'>='
+t_EQ = r'=='
+t_GL = r'<>'
 
 # Function to generate relational operation tokens
 # (just like mathematical ones)
@@ -96,6 +108,34 @@ def p_expression_arithmetic(p):
         p[0] = (p[1], p[2], p[3])
     elif p[2] == 'mod':
         p[0] = (p[1], p[2], p[3])
+
+def p_expr_Relop(p):
+    '''
+    expression : expression LT expression
+               | expression EQUALS expression
+               | expression GT expression
+               | expression GL expression
+               | expression LE expression
+               | expression GE expression
+    '''
+    # p is a sequence that represents rule contents.
+    #
+    # expression : expression relational operaion expression
+    #   p[0]     : p[1] p[2] p[3]
+    # 
+    if p[2] == '<':
+        p[0] = (p[1], p[2], p[3])
+    elif p[2] == '=':
+        p[0] = (p[1], p[2], p[3])
+    elif p[2] == '>':
+        p[0] = (p[1], p[2], p[3])
+    elif p[2] == '<>':
+        p[0] = (p[1], p[2], p[3])
+    elif p[2] == '<=':
+        p[0] = (p[1], p[2], p[3])
+    elif p[2] == '>=':
+        p[0] = (p[1], p[2], p[3])
+
 
 def p_expr_uminus(p):
     'expression : MINUS expression %prec UMINUS'
