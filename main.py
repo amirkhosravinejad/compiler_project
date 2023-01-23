@@ -13,15 +13,15 @@ precedence = (
 # All tokens must be named in advance.
 tokens = (
         # punctuations!(: , ;)
-        'COLON', 'SEMICOLON', 'COMMA', 
+        'COLON', 'SEMICOLON', 'COMMA',
 
-        # Operators (+,-,*,/,mod(%),|,&,~,^,<<,>>, ||, &&, !, <, <=, >, >=, =, <>) 
+        # Operators (+,-,*,/,mod(%),|,&,~,^,<<,>>, ||, &&, !, <, <=, >, >=, =, <>)
         'PLUS', 'MINUS', 'TIMES', 'DIVIDE', 'LPAREN', 'RPAREN',
         'IDENTIFIER', 'NUMBER', 'AND', 'NOT', 'OR', 'MOD', 'UMINUS',
         'LT', 'LE', 'GT', 'GE', 'EQ', 'GL',
         # Assignment (:=)
         'ASSIGN',
-        
+
         # Keywords here as tokens
         'IF', 'THEN', 'WHILE', 'ELSE', 'DO', 'PRINT',
         'SWITCH', 'OF', 'DONE', 'PROGRAM', 'VAR', 'BEGIN', 'END', 'DEFAULT',
@@ -76,7 +76,7 @@ t_OR = 'or'
 # so we omit them
 def t_IDENTIFIER(t):
     r'\b(?!(if|then|while|else|do|print|of|program|begin|end)\b)[a-zA-Z_][a-zA-Z0-9_]*'
-    return t    
+    return t
 
 # Function to generate relational operation tokens
 # (just like mathematical ones)
@@ -103,36 +103,47 @@ def t_error(t):
 
 # Build the lexer object
 lexer = lex()
-    
+
 # --- Parser
 
-# def p_program(p):
-#     '''program : PROGRAM IDENTIFIER declarations compoundStatements
-#                '''
-# #
-# #    if len(p) == 2 and p[1]:
-# #        p[0] = {}
-# #        line, stat = p[1]
-# #        p[0][line] = stat
-# #    elif len(p) == 3:
-# #        p[0] = p[1]
-# #        if not p[0]:
-# #            p[0] = {}
-# #        if p[2]:
-# #            line, stat = p[2]
-# #            p[0][line] = stat
+def p_program(p):
+    '''program : PROGRAM IDENTIFIER declarations compoundStatement
+    '''
+    if len(p) == 5:
+        p[0] = (p[1], p[2], p[3], p[4])
 
-#     p[0] = p[1]
-#     if not p[0]:
-#         p[0] = {}
-    
-#     pass
+    #pass
+def p_declarations(p):
+    '''
+        declarations : VAR declarationList
+                     |
+    '''
+    if len(p) == 3:
+        p[0] = (p[1], p[2])
+    elif len(p) == 1:
+        p[0] = {}
+    #pass
+
+def p_declarationList(p):
+    '''
+    declarationList : identifierList COLON type
+                    | declarationList SEMICOLON identifierList COLON type
+    '''
+    if len(p) == 4:
+        #case when we are using the first Part of the Rule
+        p[0] = p[1] + [p[3]]
+    elif len(p) == 6:
+        #case for the second part of the rule
+        p[0] = p[1] + [p[3]] + [p[5]]
+
+    #pass
 
 def p_identifierList(p):
     '''
     identifierList : IDENTIFIER
-                   | identifierList ',' IDENTIFIER
+                   | identifierList COMMA IDENTIFIER
     '''
+    # Changed to COMMA token
     # actually p[0] will store list of identifiers
     if len(p) == 2:
         # when we have only one identifier
@@ -141,7 +152,7 @@ def p_identifierList(p):
         # when there's several identifiers
         # which is separated with commas, p[1] which is the new
         # one, is append to the list of identifiers
-        p[0] = p[1] + [p[3]]  
+        p[0] = p[1] + [p[3]]
 
 # define the type (currently we have only integers as number)
 def p_type(p):
@@ -169,7 +180,7 @@ def p_statementList(p):
         # when in the compound statement there's several statements
         # which is separated with semicolons, p[1] which is the new
         # one, is append to the list of statements
-        p[0] = p[1] + [p[3]]  
+        p[0] = p[1] + [p[3]]
 
 
 # here we have statement rules
@@ -186,7 +197,7 @@ def p_statement_if(p):
     statement : IF expression THEN statement
               | IF expression THEN statement ELSE statement
     '''
-    
+
     if len(p) == 5:
         p[0] = ('if', (p[2], p[4]))
     elif len(p) == 7:
@@ -194,7 +205,7 @@ def p_statement_if(p):
 
     #pass
 def p_statement_while(p):
-        
+
     '''
     statement : WHILE expression DO statement
     '''
@@ -207,7 +218,7 @@ def p_statement_print(p):
     '''
     statement : PRINT LPAREN expression RPAREN
     '''
-    
+
     p[0] = ('print', (p[3]))
 
     #pass
@@ -239,7 +250,7 @@ def p_expression_arithmetic(p):
     #
     # expression : expression arithmetic_operaion expression
     #   p[0]     : p[1] p[2] p[3]
-    # 
+    #
     if p[2] == '+':
         p[0] = (p[1], p[2], p[3])
     elif p[2] == '-':
@@ -264,7 +275,7 @@ def p_expr_Relop(p):
     #
     # expression : expression relational operaion expression
     #   p[0]     : p[1] p[2] p[3]
-    # 
+    #
     if p[2] == '<':
         p[0] = (p[1], p[2], p[3])
     elif p[2] == '=':
@@ -287,7 +298,7 @@ def p_expr_bool_dual(p):
     #
     # expression : expression relativity operaions expression
     #   p[0]     : p[1] p[2] p[3]
-    # 
+    #
     if p[2] == 'and':
         p[0] = (p[1], p[2], p[3])
     elif p[2] == 'or':
