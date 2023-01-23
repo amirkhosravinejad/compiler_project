@@ -25,6 +25,7 @@ tokens = (
         # Keywords here as tokens
         'IF', 'THEN', 'WHILE', 'ELSE', 'DO', 'PRINT',
         'SWITCH', 'OF', 'DONE', 'PROGRAM', 'VAR', 'BEGIN', 'END', 'DEFAULT',
+        'REAL',
         )
 
 # Ignored characters
@@ -62,6 +63,7 @@ t_OF = 'of'
 t_PROGRAM = 'program'
 t_BEGIN = 'begin'
 t_END = 'end'
+t_REAL = 'real'
 # Delimeters
 t_LPAREN = r'\('
 t_RPAREN = r'\)'
@@ -75,7 +77,7 @@ t_OR = 'or'
 # are tokens which should not be considered as an identifier
 # so we omit them
 def t_IDENTIFIER(t):
-    r'\b(?!(if|then|while|else|do|print|of|program|begin|end)\b)[a-zA-Z_][a-zA-Z0-9_]*'
+    r'\b(?!(if|then|while|else|do|print|of|program|begin|end|real)\b)[a-zA-Z_][a-zA-Z0-9_]*'
     return t
 
 # Function to generate relational operation tokens
@@ -158,8 +160,12 @@ def p_identifierList(p):
 def p_type(p):
     '''
     type : NUMBER
+         | REAL
     '''
-    p[0] = p[1]
+    if p[1] == 'NUMBER':
+        p[0] = ('number', p[1])
+    elif p[1] == 'REAL':
+        p[0] = ('real', p[1])
 
 def p_compoundStatement(p):
     '''
@@ -229,6 +235,12 @@ def p_expression_number(p):
     expression : NUMBER
     '''
     p[0] = ('number', p[1])
+
+def p_expression_real(p):
+    '''
+    expression : REAL
+    '''
+    p[0] = ('real', p[1])
 
 def p_expression_IDENTIFIER(p):
     '''
