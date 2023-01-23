@@ -108,6 +108,23 @@ lexer = lex()
 
 # --- Parser
 
+class E:
+    def __init__(self, t, f):
+        self.truelist = t
+        self.falselist = f
+
+quadruples = []
+
+def backpatch(l : list, i: int):
+    pass
+
+def p_marker(t):
+    'marker: '
+    # t[0] is for NextInstruction
+    t[0] = len(quadruples) + 1
+    pass
+
+
 def p_program(p):
     '''program : PROGRAM IDENTIFIER declarations compoundStatement
     '''
@@ -118,7 +135,7 @@ def p_program(p):
 def p_declarations(p):
     '''
         declarations : VAR declarationList
-                     |
+                     | empty
     '''
     if len(p) == 3:
         p[0] = (p[1], p[2])
