@@ -108,6 +108,10 @@ lexer = lex()
 
 # --- Parser
 
+
+# For Every Expression we have : expression(truelist, falselist)
+# Then to Show Truelist, We Show like P[i][0] and for False is P[i][1]
+
 class E:
     def __init__(self, t, f):
         self.truelist = t
@@ -115,14 +119,18 @@ class E:
 
 quadruples = []
 
+# int is for the destination addr
+# list if for a list of quads
 def backpatch(l : list, i: int):
-    pass
+        for line_number in l:
+            quadruples[line_number - 1] = ("goto", i)
+
+def nextinstr():
+    return len(quadruples) + 1
 
 def p_marker(t):
-    'marker: '
-    # t[0] is for NextInstruction
-    t[0] = len(quadruples) + 1
-    pass
+    'marker : '
+    t[0] = nextinstr()
 
 
 def p_program(p):
@@ -135,7 +143,7 @@ def p_program(p):
 def p_declarations(p):
     '''
         declarations : VAR declarationList
-                     | empty
+                     |
     '''
     if len(p) == 3:
         p[0] = (p[1], p[2])
@@ -329,9 +337,18 @@ def p_expr_bool_dual(p):
     #   p[0]     : p[1] p[2] p[3]
     #
     if p[2] == 'and':
-        p[0] = (p[1], p[2], p[3])
+        #p[0] = (p[1], p[2], p[3])
+        backpatch(p[1].truelist, p[3])
+        truelist = p[4].truelist
+        falselist = p[4].falselist + p[1].falselist
+        p[0] = E(truelist, falselist)
+
     elif p[2] == 'or':
-        p[0] = (p[1], p[2], p[3])
+        #p[0] = (p[1], p[2], p[3])
+        backpatch(p[1].falselist, p[3])
+        truelist = p[1].truelist + p[4].truelist
+        falselist = p[4].falselist
+        p[0] = E(truelist, falselist)
 
 
 def p_expr_uminus(p):
@@ -342,9 +359,12 @@ def p_expression_NOT(p):
     '''
     expression : NOT expression
     '''
-    if p[1] == 'NOT':
-        print(f"p[0] = {p[0]}, p[1] = {p[1]}, p[2] = {p[2]}")
-        p[0] = (p[1], p[2])
+    #if p[1] == 'NOT':
+    #   print(f"p[0] = {p[0]}, p[1] = {p[1]}, p[2] = {p[2]}")
+    #    p[0] = (p[1], p[2])
+    truelist = p[1].falselist
+    falselist = p[1].truelist
+    p[0] = E(truelist,falselist)
 
 def p_expression_grouped(p):
     '''
@@ -358,7 +378,7 @@ def p_error(p):
 # Build the parser
 parser = yacc()
 
-data = 'begin if x < 5 then x := 3 else while x < 5 do x := x - 1; s:= 1 end'
+data = 'program begin if x < 5 then x := 3 else while x < 5 do x := x - 1; s:= 1 end'
 # Parse an expression
 ast = parser.parse(data, debug=True)
 print(ast)
