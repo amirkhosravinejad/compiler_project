@@ -17,7 +17,7 @@ tokens = (
 
         # Operators (+,-,*,/,mod(%),|,&,~,^,<<,>>, ||, &&, !, <, <=, >, >=, =, <>)
         'PLUS', 'MINUS', 'TIMES', 'DIVIDE', 'LPAREN', 'RPAREN',
-        'IDENTIFIER', 'NUMBER', 'AND', 'NOT', 'OR', 'MOD', 'UMINUS',
+        'IDENTIFIER', 'AND', 'NOT', 'OR', 'MOD', 'UMINUS',
         'LT', 'LE', 'GT', 'GE', 'EQ', 'GL',
         # Assignment (:=)
         'ASSIGN',
@@ -25,11 +25,15 @@ tokens = (
         # Keywords here as tokens
         'IF', 'THEN', 'WHILE', 'ELSE', 'DO', 'PRINT',
         'SWITCH', 'OF', 'DONE', 'PROGRAM', 'VAR', 'BEGIN', 'END', 'DEFAULT',
-        'REAL',
+        # token for types
+        'REAL', 'INT',
+
+        # int, real constants
+        'CONSTINT', 'CONSTREAL',
         )
 
 # Ignored characters
-t_ignore = ' \t'
+t_ignore = ' \t\n'
 
 # Token matching rules are written as regexs
 # punctuations
@@ -61,23 +65,26 @@ t_DO = 'do'
 t_PRINT = 'print'
 t_OF = 'of'
 t_PROGRAM = 'program'
+t_VAR = 'var'
 t_BEGIN = 'begin'
 t_END = 'end'
-t_REAL = 'real'
 # Delimeters
 t_LPAREN = r'\('
 t_RPAREN = r'\)'
 t_UMINUS = r'-'
 # Boolean
-t_AND = 'and'
-t_NOT = 'not'
-t_OR = 'or'
+t_AND = '&&'
+t_NOT = '!'
+t_OR = '\|\|'
+# types
+t_REAL = 'real'
+t_INT = 'int'
 
 # keywords if, then, while, else, do, print, of, program, begin, end, and default
 # are tokens which should not be considered as an identifier
 # so we omit them
 def t_IDENTIFIER(t):
-    r'\b(?!(if|then|while|else|do|print|of|program|begin|end|real)\b)[a-zA-Z_][a-zA-Z0-9_]*'
+    r'\b(?!(if|then|while|else|do|print|of|program|begin|end|var|int|real)\b)[a-zA-Z_][a-zA-Z0-9_]*'
     return t
 
 # Function to generate relational operation tokens
@@ -86,17 +93,21 @@ def t_IDENTIFIER(t):
 #     r'<|<=|>|>=|=|<>'
 #     return t
 
-# A function can be used if there is an associated action.
-# Write the matching regex in the docstring.
-def t_NUMBER(t):
-    r'\d+'
+# A function used for genrate token for integer constants
+def t_CONSTINT(t):
+    r'[+]?[0-9]+'
+    return t
+
+# A function used for genrate token for real constants
+def t_CONSTREAL(t):
+    r'[+]?[0-9]+\.[0-9]+'
     t.value = int(t.value)
     return t
 
 # Ignored token with an action associated with it
-def t_ignore_newline(t):
-    r'\n+'
-    t.lexer.lineno += t.value.count('\n')
+# def t_ignore_newline(t):
+#     r'\n+'
+#     t.lexer.lineno += t.value.count('\n')
 
 # Error handler for illegal characters
 def t_error(t):
@@ -128,9 +139,9 @@ def backpatch(l : list, i: int):
 def nextinstr():
     return len(quadruples) + 1
 
-def p_marker(t):
-    'marker : '
-    t[0] = nextinstr()
+# def p_marker(t):
+#     'marker : '
+#     t[0] = nextinstr()
 
 
 def p_program(p):
@@ -143,12 +154,12 @@ def p_program(p):
 def p_declarations(p):
     '''
         declarations : VAR declarationList
-                     |
+                     | 
     '''
     if len(p) == 3:
         p[0] = (p[1], p[2])
     elif len(p) == 1:
-        p[0] = {}
+        p[0] = ()
     #pass
 
 def p_declarationList(p):
@@ -158,10 +169,12 @@ def p_declarationList(p):
     '''
     if len(p) == 4:
         #case when we are using the first Part of the Rule
-        p[0] = p[1] + [p[3]]
+        p[0] = [(p[1], p[2], p[3])]
     elif len(p) == 6:
         #case for the second part of the rule
-        p[0] = p[1] + [p[3]] + [p[5]]
+        p[0] = p[1] + [(p[3], p[4], p[5])]
+    # for i in p:    
+    #     print(i, end=" ")    
 
     #pass
 
@@ -181,16 +194,17 @@ def p_identifierList(p):
         # one, is append to the list of identifiers
         p[0] = p[1] + [p[3]]
 
-# define the type (currently we have only integers as number)
+# define the type (integers or real numbers)
 def p_type(p):
     '''
-    type : NUMBER
+    type : INT
          | REAL
     '''
-    if p[1] == 'NUMBER':
-        p[0] = ('number', p[1])
-    elif p[1] == 'REAL':
-        p[0] = ('real', p[1])
+    if p[1] == 'int' or p[1] == 'real':
+    #     p[0] = ('int-type', p[1])
+    # elif p[1] == 'real':
+    #     p[0] = ('real-type', p[1])
+        p[0] = p[1]
 
 def p_compoundStatement(p):
     '''
@@ -255,17 +269,19 @@ def p_statement_print(p):
     #pass
 
 # rules which expression is in the rule's leftside
-def p_expression_number(p):
+def p_expression_int(p):
     '''
-    expression : NUMBER
+    expression : CONSTINT
     '''
-    p[0] = ('number', p[1])
+    # p[0] = ('int-const', p[1])
+    p[0] = p[1]
 
 def p_expression_real(p):
     '''
-    expression : REAL
+    expression : CONSTREAL
     '''
-    p[0] = ('real', p[1])
+    # p[0] = ('real-const', p[1])
+    p[0] = p[1]
 
 def p_expression_IDENTIFIER(p):
     '''
@@ -336,19 +352,19 @@ def p_expr_bool_dual(p):
     # expression : expression relativity operaions expression
     #   p[0]     : p[1] p[2] p[3]
     #
-    if p[2] == 'and':
-        #p[0] = (p[1], p[2], p[3])
-        backpatch(p[1].truelist, p[3])
-        truelist = p[4].truelist
-        falselist = p[4].falselist + p[1].falselist
-        p[0] = E(truelist, falselist)
+    if p[2] == '&&':
+        p[0] = (p[1], p[2], p[3])
+        # backpatch(p[1].truelist, p[3])
+        # truelist = p[4].truelist
+        # falselist = p[4].falselist + p[1].falselist
+        # p[0] = E(truelist, falselist)
 
-    elif p[2] == 'or':
-        #p[0] = (p[1], p[2], p[3])
-        backpatch(p[1].falselist, p[3])
-        truelist = p[1].truelist + p[4].truelist
-        falselist = p[4].falselist
-        p[0] = E(truelist, falselist)
+    elif p[2] == '||':
+        p[0] = (p[1], p[2], p[3])
+        # backpatch(p[1].falselist, p[3])
+        # truelist = p[1].truelist + p[4].truelist
+        # falselist = p[4].falselist
+        # p[0] = E(truelist, falselist)
 
 
 def p_expr_uminus(p):
@@ -359,12 +375,12 @@ def p_expression_NOT(p):
     '''
     expression : NOT expression
     '''
-    #if p[1] == 'NOT':
-    #   print(f"p[0] = {p[0]}, p[1] = {p[1]}, p[2] = {p[2]}")
-    #    p[0] = (p[1], p[2])
-    truelist = p[1].falselist
-    falselist = p[1].truelist
-    p[0] = E(truelist,falselist)
+    if p[1] == 'NOT':
+        #print(f"p[0] = {p[0]}, p[1] = {p[1]}, p[2] = {p[2]}")
+        p[0] = (p[1], p[2])
+    # truelist = p[1].falselist
+    # falselist = p[1].truelist
+    # p[0] = E(truelist,falselist)
 
 def p_expression_grouped(p):
     '''
@@ -378,7 +394,20 @@ def p_error(p):
 # Build the parser
 parser = yacc()
 
-data = 'program begin if x < 5 then x := 3 else while x < 5 do x := x - 1; s:= 1 end'
+#data = 'var sam, tiare, pain : int; a,b,c:real'
+input = '''program iliare 
+var a,b:real;c:real;x:real;y:real
+begin
+if x < 5 then
+    x := 3
+else
+    while x > 5 do
+        x := -x - 1;
+    s:= 1;
+    if a * c && ! d then
+        print(f)
+end'''
+
 # Parse an expression
-ast = parser.parse(data, debug=True)
+ast = parser.parse(input, debug=True)
 print(ast)

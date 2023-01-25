@@ -1,0 +1,12 @@
+program iliare 
+var a,b:real;c:real;x:real;y:real
+begin
+if x < 5 then
+    x := 3
+else
+    while x > 5 do
+        x := -x - 1;
+    s:= 1;
+    if a * c && ! d then
+        print(f)
+end
