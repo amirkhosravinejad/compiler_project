@@ -128,6 +128,14 @@ class E:
         self.truelist = t
         self.falselist = f
 
+# S.nextlist is a list
+# of all conditional and unconditional jumps to the instruction following the code
+# for statement S in execution order
+
+class S:
+    def __init__(self, n):
+        self.nextlist = n
+
 quadruples = []
 
 # int is for the destination addr
@@ -139,9 +147,9 @@ def backpatch(l : list, i: int):
 def nextinstr():
     return len(quadruples) + 1
 
-# def p_marker(t):
-#     'marker : '
-#     t[0] = nextinstr()
+def marker(t):
+    'marker : '
+    t[0] = nextinstr()
 
 
 def p_program(p):
@@ -154,7 +162,7 @@ def p_program(p):
 def p_declarations(p):
     '''
         declarations : VAR declarationList
-                     | 
+                     |
     '''
     if len(p) == 3:
         p[0] = (p[1], p[2])
@@ -173,8 +181,8 @@ def p_declarationList(p):
     elif len(p) == 6:
         #case for the second part of the rule
         p[0] = p[1] + [(p[3], p[4], p[5])]
-    # for i in p:    
-    #     print(i, end=" ")    
+    # for i in p:
+    #     print(i, end=" ")
 
     #pass
 
@@ -244,11 +252,24 @@ def p_statement_if(p):
     '''
 
     if len(p) == 5:
-        p[0] = ('if', (p[2], p[4]))
-    elif len(p) == 7:
-        p[0] = ('if-else', (p[2], p[4], p[6]))
+        #p[0] = ('if', (p[2], p[4]))
+        truelist = p[2].truelist
+        backpatch(truelist,nextinstr())
+        nextlist = p[2].falselist + p[5].nextlist
+        S(nextlist)
 
-    #pass
+    elif len(p) == 7:
+        #p[0] = ('if-else', (p[2], p[4], p[6]))
+
+# This Needs Serious Change
+        truelist = p[2].truelist
+        faleslist = p[2].falselist
+        backpatch(truelist,nextinstr())
+        backpatch(faleslist,nextinstr())
+        nextlist = p[5].nextlist
+        #temp = nextlist + N.nextlist !!!!!
+        S(nextlist)
+
 def p_statement_while(p):
 
     '''
@@ -330,7 +351,13 @@ def p_expr_Relop(p):
     #   p[0]     : p[1] p[2] p[3]
     #
     if p[2] == '<':
-        p[0] = (p[1], p[2], p[3])
+        #p[0] = (p[1], p[2], p[3])
+        truelist = E([], [nextinstr()])
+        falselist = E([], [nextinstr() + 1])
+        p[0] = E(truelist,falselist)
+        quadruples.append(("if" "p[1] p[2] p[3]" "goto_")) # Without "" for the Relation, it gets Fucked! no clue why
+        quadruples.append(("goto_", ))
+        # Make This Right and ALL THE rest is the SAME!!!!!!!
     elif p[2] == '=':
         p[0] = (p[1], p[2], p[3])
     elif p[2] == '>':
@@ -353,18 +380,18 @@ def p_expr_bool_dual(p):
     #   p[0]     : p[1] p[2] p[3]
     #
     if p[2] == '&&':
-        p[0] = (p[1], p[2], p[3])
-        # backpatch(p[1].truelist, p[3])
-        # truelist = p[4].truelist
-        # falselist = p[4].falselist + p[1].falselist
-        # p[0] = E(truelist, falselist)
+        #p[0] = (p[1], p[2], p[3])
+        backpatch(p[1].truelist, p[3])
+        truelist = p[4].truelist
+        falselist = p[4].falselist + p[1].falselist
+        p[0] = E(truelist, falselist)
 
     elif p[2] == '||':
-        p[0] = (p[1], p[2], p[3])
-        # backpatch(p[1].falselist, p[3])
-        # truelist = p[1].truelist + p[4].truelist
-        # falselist = p[4].falselist
-        # p[0] = E(truelist, falselist)
+        #p[0] = (p[1], p[2], p[3])
+        backpatch(p[1].falselist, p[3])
+        truelist = p[1].truelist + p[4].truelist
+        falselist = p[4].falselist
+        p[0] = E(truelist, falselist)
 
 
 def p_expr_uminus(p):
@@ -377,16 +404,17 @@ def p_expression_NOT(p):
     '''
     if p[1] == 'NOT':
         #print(f"p[0] = {p[0]}, p[1] = {p[1]}, p[2] = {p[2]}")
-        p[0] = (p[1], p[2])
-    # truelist = p[1].falselist
-    # falselist = p[1].truelist
-    # p[0] = E(truelist,falselist)
+        #p[0] = (p[1], p[2])
+        truelist = p[1].falselist
+        falselist = p[1].truelist
+        p[0] = E(truelist,falselist)
 
 def p_expression_grouped(p):
     '''
     expression : LPAREN expression RPAREN
     '''
-    p[0] = ('grouped', p[2])
+    #p[0] = ('grouped', p[2])
+    p[0] = E(p[2].truelist, p[2].falselist)
 
 def p_error(p):
     print(f'Syntax error at {p.value!r}')
@@ -395,7 +423,7 @@ def p_error(p):
 parser = yacc()
 
 #data = 'var sam, tiare, pain : int; a,b,c:real'
-input = '''program iliare 
+input = '''program iliare
 var a,b:real;c:real;x:real;y:real
 begin
 if x < 5 then
