@@ -138,156 +138,224 @@ class S:
 
 quadruples = []
 
-# int is for the destination addr
-# list if for a list of quads
-def backpatch(l : list, i: int):
-        for line_number in l:
-            quadruples[line_number - 1] = ("goto", i)
+is_not_bool = False
+
+# tl_or_fl is for checking false list or truelists (traversal)
+def backpatch(l, i, tl_or_fl):
+        # for line_number in l:
+        #    quadruples[line_number - 1] = ("goto", i)
+        # print(type(l))
+        if (type(l) == list):
+            for line_number in l:
+                quadruples[line_number - 1] = ("goto", i)
+        else:
+            if tl_or_fl == False:
+                child = l.falselist
+            else:
+                child = l.truelist    
+            
+            # print(truel)
+            while type(child) != list:
+                if tl_or_fl == False:
+                    child = child.falselist
+                else:
+                    child = child.truelist
+            for line_number in child:
+                replaced_line = quadruples[line_number - 1].replace("_", str(i))
+                quadruples[line_number - 1] = replaced_line
+                #print(line_number, i)
+        #print(quadruples)
+
+# function for merging truelist or falselist of expressions       
+def merge(E_obj1, E_obj2, tl_or_fl):
+    # tl_or_fl as we did in backpatch function, is a flag
+    # for checking truelist or falselists
+    if tl_or_fl == False:
+        # merging two falselists when 
+        # there is no NOT boolean expression
+        if type(E_obj1) != list:
+            false_l1 = E_obj1.falselist
+            while (type(false_l1) != list):
+                false_l1 = false_l1.falselist
+        else:
+            # for NOT expression
+            false_l1 = E_obj1
+        if type(E_obj2)!= list:
+            false_l2 = E_obj2.falselist
+            while (type(false_l2)!= list):
+                false_l2 = false_l2.falselist
+        else:
+            # for NOT expression
+            false_l2 = E_obj2
+        # merge two lists in a new list and return
+        # as the falselist of a new object of E class        
+        temp = false_l1 + false_l2
+        return E([], temp)
+    else:
+        # merging two truelists
+        if type(E_obj1)!= list:
+            true_l1 = E_obj1.truelist
+            while (type(true_l1) != list):
+                true_l1 = true_l1.truelist
+        else:
+            # for NOT expression
+            true_l1 = E_obj1
+        if type(E_obj2)!= list:
+            true_l2 = E_obj2.truelist
+            while (type(true_l2)!= list):
+                true_l2 = true_l2.truelist
+        else:
+            # for NOT expression
+            true_l2 = E_obj2  
+         # merge two lists in a new list and return
+        # as the truelist of a new object of E class                
+        temp = true_l1 + true_l2
+        return E(temp, [])  
 
 def nextinstr():
     return len(quadruples) + 1
 
-def marker(t):
+def p_marker(p):
     'marker : '
-    t[0] = nextinstr()
+    p[0] = nextinstr()
 
 
-def p_program(p):
-    '''program : PROGRAM IDENTIFIER declarations compoundStatement
-    '''
-    if len(p) == 5:
-        p[0] = (p[1], p[2], p[3], p[4])
+# def p_program(p):
+#     '''program : PROGRAM IDENTIFIER declarations compoundStatement
+#     '''
+#     if len(p) == 5:
+#         p[0] = (p[1], p[2], p[3], p[4])
 
-    #pass
-def p_declarations(p):
-    '''
-        declarations : VAR declarationList
-                     |
-    '''
-    if len(p) == 3:
-        p[0] = (p[1], p[2])
-    elif len(p) == 1:
-        p[0] = ()
-    #pass
+#     #pass
+# def p_declarations(p):
+#     '''
+#         declarations : VAR declarationList
+#                      |
+#     '''
+#     if len(p) == 3:
+#         p[0] = (p[1], p[2])
+#     elif len(p) == 1:
+#         p[0] = ()
+#     #pass
 
-def p_declarationList(p):
-    '''
-    declarationList : identifierList COLON type
-                    | declarationList SEMICOLON identifierList COLON type
-    '''
-    if len(p) == 4:
-        #case when we are using the first Part of the Rule
-        p[0] = [(p[1], p[2], p[3])]
-    elif len(p) == 6:
-        #case for the second part of the rule
-        p[0] = p[1] + [(p[3], p[4], p[5])]
-    # for i in p:
-    #     print(i, end=" ")
+# def p_declarationList(p):
+#     '''
+#     declarationList : identifierList COLON type
+#                     | declarationList SEMICOLON identifierList COLON type
+#     '''
+#     if len(p) == 4:
+#         #case when we are using the first Part of the Rule
+#         p[0] = [(p[1], p[2], p[3])]
+#     elif len(p) == 6:
+#         #case for the second part of the rule
+#         p[0] = p[1] + [(p[3], p[4], p[5])]
+#     # for i in p:
+#     #     print(i, end=" ")
 
-    #pass
+#     #pass
 
-def p_identifierList(p):
-    '''
-    identifierList : IDENTIFIER
-                   | identifierList COMMA IDENTIFIER
-    '''
-    # Changed to COMMA token
-    # actually p[0] will store list of identifiers
-    if len(p) == 2:
-        # when we have only one identifier
-        p[0] = [p[1]]
-    elif len(p) == 4:
-        # when there's several identifiers
-        # which is separated with commas, p[1] which is the new
-        # one, is append to the list of identifiers
-        p[0] = p[1] + [p[3]]
+# def p_identifierList(p):
+#     '''
+#     identifierList : IDENTIFIER
+#                    | identifierList COMMA IDENTIFIER
+#     '''
+#     # Changed to COMMA token
+#     # actually p[0] will store list of identifiers
+#     if len(p) == 2:
+#         # when we have only one identifier
+#         p[0] = [p[1]]
+#     elif len(p) == 4:
+#         # when there's several identifiers
+#         # which is separated with commas, p[1] which is the new
+#         # one, is append to the list of identifiers
+#         p[0] = p[1] + [p[3]]
 
-# define the type (integers or real numbers)
-def p_type(p):
-    '''
-    type : INT
-         | REAL
-    '''
-    if p[1] == 'int' or p[1] == 'real':
-    #     p[0] = ('int-type', p[1])
-    # elif p[1] == 'real':
-    #     p[0] = ('real-type', p[1])
-        p[0] = p[1]
+# # define the type (integers or real numbers)
+# def p_type(p):
+#     '''
+#     type : INT
+#          | REAL
+#     '''
+#     if p[1] == 'int' or p[1] == 'real':
+#     #     p[0] = ('int-type', p[1])
+#     # elif p[1] == 'real':
+#     #     p[0] = ('real-type', p[1])
+#         p[0] = p[1]
 
-def p_compoundStatement(p):
-    '''
-    compoundStatement : BEGIN statementList END
-    '''
-    p[0] = (p[1], p[2], p[3])
+# def p_compoundStatement(p):
+#     '''
+#     compoundStatement : BEGIN statementList END
+#     '''
+#     p[0] = (p[1], p[2], p[3])
 
-def p_statementList(p):
-    '''
-    statementList : statement
-                  | statementList SEMICOLON statement
-    '''
-    # actually p[0] will store list of statements
-    if len(p) == 2:
-        # when we have only one statement
-        p[0] = [p[1]]
-    elif len(p) == 4:
-        # when in the compound statement there's several statements
-        # which is separated with semicolons, p[1] which is the new
-        # one, is append to the list of statements
-        p[0] = p[1] + [p[3]]
+# def p_statementList(p):
+#     '''
+#     statementList : statement
+#                   | statementList SEMICOLON statement
+#     '''
+#     # actually p[0] will store list of statements
+#     if len(p) == 2:
+#         # when we have only one statement
+#         p[0] = [p[1]]
+#     elif len(p) == 4:
+#         # when in the compound statement there's several statements
+#         # which is separated with semicolons, p[1] which is the new
+#         # one, is append to the list of statements
+#         p[0] = p[1] + [p[3]]
 
 
-# here we have statement rules
-def p_statement_assignment(p):
-    '''
-    statement : IDENTIFIER ASSIGN expression
-    '''
-    p[0] = (p[1], p[2], p[3])
+# # here we have statement rules
+# def p_statement_assignment(p):
+#     '''
+#     statement : IDENTIFIER ASSIGN expression
+#     '''
+#     p[0] = (p[1], p[2], p[3])
 
-    #pass
+#     #pass
 
-def p_statement_if(p):
-    '''
-    statement : IF expression THEN statement
-              | IF expression THEN statement ELSE statement
-    '''
+# def p_statement_if(p):
+#     '''
+#     statement : IF expression THEN statement
+#               | IF expression THEN statement ELSE statement
+#     '''
 
-    if len(p) == 5:
-        #p[0] = ('if', (p[2], p[4]))
-        truelist = p[2].truelist
-        backpatch(truelist,nextinstr())
-        nextlist = p[2].falselist + p[5].nextlist
-        S(nextlist)
+#     if len(p) == 5:
+#         #p[0] = ('if', (p[2], p[4]))
+#         truelist = p[2].truelist
+#         backpatch(truelist,nextinstr())
+#         nextlist = p[2].falselist + p[5].nextlist
+#         S(nextlist)
 
-    elif len(p) == 7:
-        #p[0] = ('if-else', (p[2], p[4], p[6]))
+#     elif len(p) == 7:
+#         #p[0] = ('if-else', (p[2], p[4], p[6]))
 
-# This Needs Serious Change
-        truelist = p[2].truelist
-        faleslist = p[2].falselist
-        backpatch(truelist,nextinstr())
-        backpatch(faleslist,nextinstr())
-        nextlist = p[5].nextlist
-        #temp = nextlist + N.nextlist !!!!!
-        S(nextlist)
+# # This Needs Serious Change
+#         truelist = p[2].truelist
+#         faleslist = p[2].falselist
+#         backpatch(truelist,nextinstr())
+#         backpatch(faleslist,nextinstr())
+#         nextlist = p[5].nextlist
+#         #temp = nextlist + N.nextlist !!!!!
+#         S(nextlist)
 
-def p_statement_while(p):
+# def p_statement_while(p):
 
-    '''
-    statement : WHILE expression DO statement
-    '''
+#     '''
+#     statement : WHILE expression DO statement
+#     '''
 
-    p[0] = ('while', (p[2], p[4]))
+#     p[0] = ('while', (p[2], p[4]))
 
-    #pass
+#     #pass
 
-def p_statement_print(p):
-    '''
-    statement : PRINT LPAREN expression RPAREN
-    '''
+# def p_statement_print(p):
+#     '''
+#     statement : PRINT LPAREN expression RPAREN
+#     '''
 
-    p[0] = ('print', (p[3]))
+#     p[0] = ('print', (p[3]))
 
-    #pass
+#     #pass
 
 # rules which expression is in the rule's leftside
 def p_expression_int(p):
@@ -350,29 +418,18 @@ def p_expr_Relop(p):
     # expression : expression relational operaion expression
     #   p[0]     : p[1] p[2] p[3]
     #
-    if p[2] == '<':
+    if p[2] == '<' or p[2] == '=' or p[2] == '>' or p[2] == '<=' or p[2] == '>=' or p[2] == '<>':
         #p[0] = (p[1], p[2], p[3])
-        truelist = E([], [nextinstr()])
+        truelist = E([nextinstr()], [])
         falselist = E([], [nextinstr() + 1])
         p[0] = E(truelist,falselist)
-        quadruples.append(("if" "p[1] p[2] p[3]" "goto_")) # Without "" for the Relation, it gets Fucked! no clue why
-        quadruples.append(("goto_", ))
-        # Make This Right and ALL THE rest is the SAME!!!!!!!
-    elif p[2] == '=':
-        p[0] = (p[1], p[2], p[3])
-    elif p[2] == '>':
-        p[0] = (p[1], p[2], p[3])
-    elif p[2] == '<>':
-        p[0] = (p[1], p[2], p[3])
-    elif p[2] == '<=':
-        p[0] = (p[1], p[2], p[3])
-    elif p[2] == '>=':
-        p[0] = (p[1], p[2], p[3])
+        quadruples.append(("if " + str(p[1]) + " " + p[2] + " " + str(p[3]) + " " + "goto _"))
+        quadruples.append("goto _")
 
 def p_expr_bool_dual(p):
     '''
-    expression : expression AND expression
-               | expression OR expression
+    expression : expression AND marker expression
+               | expression OR marker expression
     '''
     # p is a sequence that represents rule contents.
     #
@@ -380,16 +437,22 @@ def p_expr_bool_dual(p):
     #   p[0]     : p[1] p[2] p[3]
     #
     if p[2] == '&&':
+        #print("p[1] truelist:", p[1].truelist.truelist)
         #p[0] = (p[1], p[2], p[3])
-        backpatch(p[1].truelist, p[3])
+        backpatch(p[1], p[3], True)
+        # e_tl = p[3].truelist
+        # e_fl = p[3].falselist
+        # print(f"p[3]:{e_tl.truelist}, {e_tl.falselist}")
+        # print(f"p[3]:{e_fl.truelist}, {e_fl.falselist}")
         truelist = p[4].truelist
-        falselist = p[4].falselist + p[1].falselist
+        # falselist = p[4].falselist + p[1].falselist
+        falselist = merge(p[1].falselist, p[4].falselist, False)
         p[0] = E(truelist, falselist)
 
     elif p[2] == '||':
         #p[0] = (p[1], p[2], p[3])
-        backpatch(p[1].falselist, p[3])
-        truelist = p[1].truelist + p[4].truelist
+        backpatch(p[1], p[3], False)
+        truelist = merge(p[1].truelist, p[4].truelist, True)
         falselist = p[4].falselist
         p[0] = E(truelist, falselist)
 
@@ -402,12 +465,13 @@ def p_expression_NOT(p):
     '''
     expression : NOT expression
     '''
-    if p[1] == 'NOT':
+    if p[1] == '!':
         #print(f"p[0] = {p[0]}, p[1] = {p[1]}, p[2] = {p[2]}")
         #p[0] = (p[1], p[2])
-        truelist = p[1].falselist
-        falselist = p[1].truelist
-        p[0] = E(truelist,falselist)
+        truelist = p[2].falselist
+        falselist = p[2].truelist
+        #print(f"truelist:{truelist.falselist}, falselist:{falselist.truelist}")
+        p[0] = E(truelist.falselist, falselist.truelist)
 
 def p_expression_grouped(p):
     '''
@@ -420,22 +484,25 @@ def p_error(p):
     print(f'Syntax error at {p.value!r}')
 
 # Build the parser
-parser = yacc()
+parser = yacc(start='expression')
 
 #data = 'var sam, tiare, pain : int; a,b,c:real'
-input = '''program iliare
-var a,b:real;c:real;x:real;y:real
-begin
-if x < 5 then
-    x := 3
-else
-    while x > 5 do
-        x := -x - 1;
-    s:= 1;
-    if a * c && ! d then
-        print(f)
-end'''
+# input = '''program iliare
+# var a,b:real;c:real;x:real;y:real
+# begin
+# if x < 5 then
+#     x := 3
+# else
+#     while x > 5 do
+#         x := -x - 1;
+#     s:= 1;
+#     if a * c && ! d then
+#         print(f)
+# end'''
+input = '(!(e < f)) && (salam = kh) || (22 <> m)'
 
 # Parse an expression
-ast = parser.parse(input, debug=True)
+ast = parser.parse(input, debug=False)
 print(ast)
+for i in quadruples:
+    print(i)
