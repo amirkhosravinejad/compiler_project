@@ -341,7 +341,7 @@ def p_marker(p):
 # def p_statement_while(p):
 
 #     '''
-#     statement : WHILE expression DO statement
+#     statement : WHILE marker expression DO marker statement
 #     '''
 
 #     p[0] = ('while', (p[2], p[4]))
@@ -466,12 +466,20 @@ def p_expression_NOT(p):
     expression : NOT expression
     '''
     if p[1] == '!':
-        #print(f"p[0] = {p[0]}, p[1] = {p[1]}, p[2] = {p[2]}")
+        #print(f"p[1] = {p[1]}, p[2] = {p[2]}")
         #p[0] = (p[1], p[2])
         truelist = p[2].falselist
         falselist = p[2].truelist
-        #print(f"truelist:{truelist.falselist}, falselist:{falselist.truelist}")
-        p[0] = E(truelist.falselist, falselist.truelist)
+        #print(f"salam truelist:{truelist.falselist}, falselist:{falselist.truelist}")
+        if type(truelist) == list:
+            tl = truelist
+        else:
+            tl = truelist.falselist    
+        if type(falselist) == list:
+            fl = falselist
+        else:
+            fl = falselist.truelist       
+        p[0] = E(tl, fl)
 
 def p_expression_grouped(p):
     '''
@@ -499,7 +507,7 @@ parser = yacc(start='expression')
 #     if a * c && ! d then
 #         print(f)
 # end'''
-input = '(!(e < f)) && (salam = kh) || (22 <> m)'
+input = '(!(!(e < f))) && (salam = kh) || (22 <> m)'
 
 # Parse an expression
 ast = parser.parse(input, debug=False)
