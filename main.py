@@ -136,17 +136,22 @@ class S:
     def __init__(self, n):
         self.nextlist = n
 
-quadruples = []
 
+quadruples = ['#include <stdio.h>']
+# List of primary_variables
 primary_var_names = []
+# list of temp variables which used in expressions
 temp_var_names = []
+
+def replace_in_quadruple(l, i):
+    for line_number in l:
+        replaced_line = quadruples[line_number - 1].replace("_", 'l'+str(i))
+        quadruples[line_number - 1] = replaced_line    
 
 # tl_or_fl is for checking false list or truelists (traversal)
 def backpatch(l, i, tl_or_fl):
         if (type(l) == list):
-            for line_number in l:
-                replaced_line = quadruples[line_number - 1].replace("_", str(i))
-                quadruples[line_number - 1] = replaced_line
+            replace_in_quadruple(l, i)
         elif isinstance(l, E):
             if tl_or_fl == False:
                 child = l.falselist
@@ -158,15 +163,14 @@ def backpatch(l, i, tl_or_fl):
                     child = child.falselist
                 else:
                     child = child.truelist
-            for line_number in child:
-                replaced_line = quadruples[line_number - 1].replace("_", str(i))
-                quadruples[line_number - 1] = replaced_line
+            
+            replace_in_quadruple(child, i)
         elif isinstance(l, S):
             while type(l) != list:
                 l = l.nextlist
-            for line_number in l:
-                replaced_line = quadruples[line_number - 1].replace("_", str(i))
-                quadruples[line_number - 1] = replaced_line            
+            replace_in_quadruple(l, i)
+        content = quadruples[i - 1]
+        quadruples[i - 1] = 'l' + str(i) +': ' + content                  
                 #print(line_number, i)
         #print(quadruples)
 
@@ -267,6 +271,7 @@ def p_program(p):
     '''
     if len(p) == 5:
         p[0] = (p[1], p[2], p[3], p[4])
+    print("p[4] program: ",p[4])    
 
     #pass
 def p_declarations(p):
@@ -276,6 +281,7 @@ def p_declarations(p):
     '''
     if len(p) == 3:
         p[0] = (p[1], p[2])
+        print('declar_list: ', p[2])
     elif len(p) == 1:
         p[0] = ()
     #pass
@@ -358,12 +364,20 @@ def p_statementList(p):
         # print(p[4][0].nextlist)
         statement_ = p[4][1:]
         statement_list_ = p[1][1]
-        print("st-list: ", statement_list_)
+        #print("st-list: ", statement_list_)
         p[0] = (S(p[4][0].nextlist), statement_list_ + [(statement_)])
         # print(p[4][0].nextlist)
              
         #quadruples.append(str(p[1]) + " ; " + str(p[4]))
 
+def check_type_of_operand_assignment(op):
+    if type(op) == tuple:
+        return temp_var_names[len(temp_var_names) - 1]
+    elif isinstance(op, E):
+        print(op.truelist)
+        return 'false'
+    else:
+        return str(op)            
 
 # here we have statement rules
 def p_statement_assignment(p):
@@ -374,28 +388,20 @@ def p_statement_assignment(p):
     # first part of assignment is a nextlist which firstly
     # points to a blank list 
     p[0] = (S([]), p[1], p[2], p[3])
-    # when an exression is done (specially for arithmetic one)
-    # if (len(temp_var_names) > 1):
-    #     temp_var_names.pop()
-    #print(p[3])
+    # when an aritmetic expression
     if p[3] in arithmetic_symbols:
         last = quadruples[len(quadruples) - 1]
-        #print("last: ", last)
-
+        print("last: ", last)
     else:
-        primary_var_names.append(p[1])
-        quadruples.append(p[1] + ' := ' + str(p[3]))
+        primary_var_names.append('iid_' + str(len(primary_var_names)+ 1))
+        print('salam ', p[3])
+        quadruples.append(p[1] + ' = ' + check_type_of_operand_assignment(p[3]) + ';')
         return   
     id_end_index = last.find(" =")
     #print("index: ", id_end_index)
-    last = last.replace('=', p[2])
+    #last = last.replace('=', p[2])
     #print("string: ", last)
-    quadruples[len(quadruples) - 1] = p[1] + last[id_end_index:]
-    #quadruples.append(p[1] + p[2] + str(p[3]))
-    # print("salap")
-    # print(quadruples)
-    # print(temp_var_names)
-    # print("bye")
+    quadruples[len(quadruples) - 1] = p[1] + last[id_end_index:] + ';'
     #pass
 
 def p_statement_if(p):
@@ -437,7 +443,7 @@ def p_statement_while(p):
     backpatch(p[3], p[5], True)
     nextlist = p[3].falselist
     p[0] = (S(nextlist), p[1], p[3], p[4], p[6])
-    quadruples.append('goto ' + str(p[2]))
+    quadruples.append('goto l' + str(p[2]))
     #pass
 
 def p_statement_print(p):
@@ -469,7 +475,7 @@ def p_expression_IDENTIFIER(p):
     '''
     # p[0] = ('IDENTIFIER', p[1])
     p[0] = p[1]
-    primary_var_names.append(p[1])
+    primary_var_names.append('iid_' + str(len(primary_var_names) + 1))
 
 # Write functions for each grammar rule which is
 # specified in the docstring.
@@ -507,7 +513,7 @@ def p_expression_arithmetic(p):
         temp_var_name = 'temp_int_' + str(len(temp_var_names) + 1)
         temp_var_names.append(temp_var_name)
         
-        quadruples.append(temp_var_name + ' = ' + op1 + p[2] + op2)
+        quadruples.append(temp_var_name + ' = ' + op1 + p[2] + op2 + ';')
         print(f'primary_var_names:{primary_var_names}, temps:{temp_var_names}')
         print(f'quadruples:{quadruples}, p[0]:{p[0]}')
 
@@ -615,6 +621,52 @@ def p_error(p):
 # Build the parser
 parser = yacc(start='program')
 
+def insertion_of_declaration_list(list):
+    print('slam insertion')
+    integers = []
+    #reals = []
+    for declare in list:
+        if declare[2] == 'int':
+            integers = integers + declare[0]
+        # else:
+        #     reals = reals + declare[0]
+    # for integer in integers:
+    #     print("integer", integer)
+    # for real in reals:
+    #     print("real", real)
+    index = 1
+    if len(integers) != 0:
+        string = 'int '
+        for i in range(len(integers) - 1):
+            string += 'iid_' + str(i + 1) + ', '
+        string += 'iid_' + str(len(integers)) + ';'
+        #print(string)
+        quadruples.insert(index, string)
+        
+    # if len(reals) != 0:
+    #     string = 'float '
+    #     for i in range(len(reals) - 1):
+    #         string += 'iid_' + str(i + 1) + ', '
+    #     string += 'iid_' + str(len(reals)) + ';'
+    #     #print(string)
+    #     quadruples.insert(index, string)
+    #     index += 1
+    string = 'int '
+    for temp in temp_var_names:
+        string += temp +', '
+    string += temp + ';'
+    quadruples.insert(index + 1, string)
+    #quadruples.insert(index , temp_var_names)
+    return index + 2 
+   
+
+def flush_to_file(program_name):
+    file_name = program_name + '.c'
+    with open(file_name, 'w') as fp:
+        for item in quadruples:
+        # write each item on a new line
+            fp.write("%s\n" % item)
+    print('Done')
 #data = 'var sam, tiare, pain : int; a,b,c:real'
 # input = '''program iliare
 # var a,b:real;c:real;x:real;y:real
@@ -632,17 +684,28 @@ parser = yacc(start='program')
 #input = 'while 3 = 5 do if 3 <> 4 then x:= z else x := y % 4'
 input = '''
 program prg
-var a, b: int; c, d: real
+var a, b: int; c, d, e, f, m, g, s: int
 begin
-if (a < b) && (!(!(e<f))) || (22 <> m) then c := d * e + b
+if (a < b) && (!(!(e<f))) || (22 <> m) then c := d * e 
 else f := g;
 while 5 <> 2 do
- print(s)
+ s := !(a > b)
 end
 '''
 # Parse an expression
 ast = parser.parse(input, debug=False)
 print(ast)
+
+print(f'primary_var_names:{set(primary_var_names)}, temps:{temp_var_names}')
+
+if ast[2][0] == 'var':
+    declar_list = ast[2][1]
+else:
+    declar_list = []    
+#flush_to_file(ast[1])
+index = insertion_of_declaration_list(declar_list)
+quadruples.insert(index, 'int main() {')
+quadruples.append('}')
 for i in quadruples:
     print(i)
-print(f'primary_var_names:{primary_var_names}, temps:{temp_var_names}')    
+flush_to_file(ast[1])    
