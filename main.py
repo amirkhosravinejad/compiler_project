@@ -297,7 +297,7 @@ def p_declarationList(p):
 def p_identifierList(p):
     '''
     identifierList : IDENTIFIER
-                    | identifierList COMMA IDENTIFIER
+                   | identifierList COMMA IDENTIFIER
     '''
     # Changed to COMMA token
     # Actually p[0] will store list of identifiers#
@@ -329,7 +329,7 @@ def p_compoundStatement(p):
     #p[0] = (p[1], p[2], p[3])
     
     # S.nlist = L.nlist;
-    p[0] = (S(p[2][0].nextlist) , p[1], p[3])
+    p[0] = (S(p[2][0].nextlist), p[1], p[3])
 
 
 def p_statementList(p):
@@ -342,8 +342,9 @@ def p_statementList(p):
     if len(p) == 2:
         # when we have only one statement
         # L.nlist = S.nlist
-        p[0] = (S(p[1][0].nextlist), [p[1]])
-        quadruples.append(str(p[0]) + " : " + str(p[1]))
+        statement_ = p[1][1:]
+        p[0] = (S(p[1][0].nextlist), [(statement_)])
+        #quadruples.append(str(p[0]) + " : " + str(p[1]))
     # L -> L1 ; M S 
     elif len(p) == 5:
         # when in the compound statement there's several statements
@@ -354,11 +355,14 @@ def p_statementList(p):
         # print(str(p[1][0].nextlist) + '!!!!!!!!!!!!!!!!!!!!!!!!')
         backpatch(p[1][0].nextlist, p[3], True)
         # L.nlist = S.nlist;
-        #print(p[4][0].nextlist)
-        p[0] = S(p[4][0].nextlist)
-#        print(p[4][0].nextlist)
+        # print(p[4][0].nextlist)
+        statement_ = p[4][1:]
+        statement_list_ = p[1][1]
+        print("st-list: ", statement_list_)
+        p[0] = (S(p[4][0].nextlist), statement_list_ + [(statement_)])
+        # print(p[4][0].nextlist)
              
-        quadruples.append(str(p[1]) + " ; " + str(p[4]))
+        #quadruples.append(str(p[1]) + " ; " + str(p[4]))
 
 
 # here we have statement rules
@@ -440,7 +444,7 @@ def p_statement_print(p):
     '''
     statement : PRINT LPAREN expression RPAREN
     '''
-    p[0] = ('print', (p[3]))
+    p[0] = (S([]), p[1], (p[3]))
     quadruples.append('print ' + p[2] + str(p[3]) + p[4])
     #pass
 
@@ -621,16 +625,19 @@ parser = yacc(start='program')
 #     while x > 5 do
 #         x := -x - 1;
 #     s:= 1;
-#     if a * c && ! d then
+#     if a < c then
 #         print(f)
 # end'''
 #input = '(!(!(e < f))) && (salam = kh) || (22 <> m)'
 #input = 'while 3 = 5 do if 3 <> 4 then x:= z else x := y % 4'
 input = '''
 program prg
+var a, b: int; c, d: real
 begin
-b := 1;
-a := 1 * 2 + c
+if (a < b) && (!(!(e<f))) || (22 <> m) then c := d * e + b
+else f := g;
+while 5 <> 2 do
+ print(s)
 end
 '''
 # Parse an expression
