@@ -330,20 +330,27 @@ def merge_nextlists(s1_nlist, s2_nlist, n_nlist):
 #     '''
 #     p[0] = (p[1], p[2], p[3])
 
-# def p_statementList(p):
-#     '''
-#     statementList : statement
-#                   | statementList SEMICOLON statement
-#     '''
-#     # actually p[0] will store list of statements
-#     if len(p) == 2:
-#         # when we have only one statement
-#         p[0] = [p[1]]
-#     elif len(p) == 4:
-#         # when in the compound statement there's several statements
-#         # which is separated with semicolons, p[1] which is the new
-#         # one, is append to the list of statements
-#         p[0] = p[1] + [p[3]]
+def p_statementList(p):
+    '''
+    statementList : statement
+                  | statementList SEMICOLON marker statement
+    '''
+    # actually p[0] will store list of statements
+    # L -> S
+    if len(p) == 2:
+        # when we have only one statement
+        # L.nlist = S.nlist
+        p[0] = (S(p[1][0].nextlist), [p[1]])
+    # L -> L1 ; M S 
+    elif len(p) == 5:
+        # when in the compound statement there's several statements
+        # which is separated with semicolons, p[1] which is the new
+        # one, is append to the list of statements
+        
+        # backpatch(L1.nlist, M.quad)
+        backpatch(p[1][0].nextlist, p[3], True)
+        # L.nlist = S.nlist;
+        p[0] = S(p[4][0].nextlist)
 
 
 # here we have statement rules
@@ -594,7 +601,7 @@ def p_error(p):
     print(f'Syntax error at {p.value!r}')
 
 # Build the parser
-parser = yacc(start='statement')
+parser = yacc(start='statementList')
 
 #data = 'var sam, tiare, pain : int; a,b,c:real'
 # input = '''program iliare
@@ -610,8 +617,13 @@ parser = yacc(start='statement')
 #         print(f)
 # end'''
 #input = '(!(!(e < f))) && (salam = kh) || (22 <> m)'
-input = 'while 3 = 5 do if 3 <> 4 then x:= z else x := y % 4'
-
+#input = 'while 3 = 5 do if 3 <> 4 then x:= z else x := y % 4'
+input = '''
+if ( a < b ) then
+a := 1
+else
+a := 2;
+b := 1'''
 # Parse an expression
 ast = parser.parse(input, debug=True)
 print(ast)
